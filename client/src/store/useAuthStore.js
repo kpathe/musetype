@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Create an axios instance
 export const api = axios.create({
-  baseURL: 'http://localhost:5000/api'
+  baseURL: 'https://musetype.onrender.com/api'
 });
 
 api.interceptors.request.use(config => {

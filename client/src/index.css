@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply text-gray-200 min-h-screen;
+    background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #312e81 100%);
+    background-attachment: fixed;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] rounded-3xl;
+  }
+  
+  .glass-button {
+    @apply bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 transition-all duration-300 rounded-full px-6 py-2 text-sm font-medium tracking-wide shadow-lg;
+  }
+}
+
+@layer components {
+  .caret {
+    @apply absolute w-[2px] h-[1.2em] bg-[#eab308] rounded shadow-[0_0_8px_#eab308];
+    transition: transform 0.1s ease-out;
+    animation: pulse-beat 0.5s infinite alternate;
+  }
+
+  @keyframes pulse-beat {
+    0% { opacity: 1; transform: scaleY(1); }
+    100% { opacity: 0.6; transform: scaleY(1.1); }
+  }
+}

@@ -33,7 +33,6 @@ const LessonPicker = ({ lessons, activeLesson, isCustomMode, onLessonSelect, onC
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
-  // Close on outside click
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown', handler);
@@ -44,13 +43,13 @@ const LessonPicker = ({ lessons, activeLesson, isCustomMode, onLessonSelect, onC
 
   return (
     <>
-      {/* Full-screen backdrop — dims the text area and blocks interaction */}
+      {/* Full-screen backdrop — dims content when picker is open */}
       {open && (
         <div
           onClick={() => setOpen(false)}
           style={{
             position: 'fixed', inset: 0, zIndex: 40,
-            background: 'rgba(5, 3, 20, 0.72)',
+            background: 'rgba(5,3,20,0.72)',
             backdropFilter: 'blur(3px)',
           }}
         />
@@ -162,7 +161,7 @@ const VolumeControl = ({ volume, onChange }) => (
       onChange={e => onChange(parseFloat(e.target.value))}
       className="volume-slider"
     />
-    <span style={{ color: '#64748b', fontSize: '0.75rem', width: 28 }}>
+    <span style={{ color: '#64748b', fontSize: '0.75rem', width: 32 }}>
       {Math.round(volume * 100)}%
     </span>
   </div>
@@ -171,18 +170,18 @@ const VolumeControl = ({ volume, onChange }) => (
 // ─── Main TypingView ──────────────────────────────────────────────────────────
 const TypingView = () => {
   const { lessonId } = useParams();
-  const navigate = useNavigate();
+  const navigate     = useNavigate();
   const { lessons, fetchLessons, activeLesson, setActiveLesson } = useTypingStore();
   const { isAuthenticated } = useAuthStore();
 
   const [customText, setCustomText]       = useState('');
   const [isCustomMode, setIsCustomMode]   = useState(false);
-  // "ready" means the user has clicked "Start Lesson" — Typer only mounts then
   const [isCustomReady, setIsCustomReady] = useState(false);
 
-  const [instrument, setInstrument] = useState(INSTRUMENTS.PIANO);
-  const [volume, setVolume]         = useState(0.75);
-  const [showSettings, setShowSettings] = useState(false);
+  const [instrument, setInstrument]       = useState(INSTRUMENTS.PIANO);
+  const [volume, setVolume]               = useState(0.75);
+  const [showSettings, setShowSettings]   = useState(false);
+
   const settingsRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -200,7 +199,7 @@ const TypingView = () => {
     }
   }, [lessons, lessonId, setActiveLesson, isCustomMode]);
 
-  // Close settings on outside click
+  // Close settings panel on outside click
   useEffect(() => {
     const handler = (e) => {
       if (settingsRef.current && !settingsRef.current.contains(e.target)) setShowSettings(false);
@@ -216,17 +215,25 @@ const TypingView = () => {
   };
 
   const handleCustomMode = () => {
+    navigate('/type');        // ← clears :lessonId from URL so the effect doesn't revert us
     setIsCustomMode(true);
-    setIsCustomReady(false);  // reset ready state so editor shows fresh
+    setIsCustomReady(false);
     setActiveLesson(null);
     setCustomText('');
-    // Focus the textarea after state update
     setTimeout(() => textareaRef.current?.focus(), 80);
   };
 
   const handleStartCustomLesson = () => {
     if (!customText.trim()) return;
     setIsCustomReady(true);
+  };
+
+  const handleCancelCustom = () => {
+    setIsCustomMode(false);
+    setIsCustomReady(false);
+    setCustomText('');
+    // Go back to first available lesson
+    if (lessons.length > 0) navigate(`/type/${lessons[0]._id}`);
   };
 
   const handleInstrumentChange = (ins) => {
@@ -243,14 +250,14 @@ const TypingView = () => {
     ? customText.trim()
     : (activeLesson?.text || 'loading...');
 
-  // Should we show the Typer?
   const showTyper = isCustomMode ? isCustomReady : !!activeLesson;
 
   return (
     <div className="min-h-screen flex flex-col p-8 max-w-6xl mx-auto relative z-10">
 
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <header className="mb-10 flex flex-wrap justify-between items-center glass-panel p-4 px-6 gap-4"
+      {/* ── Header ──────────────────────────────────────────────── */}
+      <header
+        className="mb-10 flex flex-wrap justify-between items-center glass-panel p-4 px-6 gap-4"
         style={{ position: 'relative', zIndex: 50 }}
       >
         {/* Left: Logo + Lesson Picker */}
@@ -313,15 +320,31 @@ const TypingView = () => {
         </div>
       </header>
 
-      {/* ── Custom Text Editor ──────────────────────────────────────────── */}
+      {/* ── Custom Text Editor ────────────────────────────────────── */}
       {isCustomMode && !isCustomReady && (
-        <div className="mb-8 w-full max-w-2xl mx-auto animate-fade-in">
+        <div className="mb-8 w-full max-w-2xl mx-auto">
           <div className="glass-panel p-7">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-              <Edit3 size={18} style={{ color: '#f59e0b' }} />
-              <span style={{ color: '#e2e8f0', fontWeight: 700, fontSize: '1rem' }}>Custom Text Input</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Edit3 size={18} style={{ color: '#f59e0b' }} />
+                <span style={{ color: '#e2e8f0', fontWeight: 700, fontSize: '1rem' }}>Custom Text Input</span>
+              </div>
+              <button
+                onClick={handleCancelCustom}
+                title="Close custom editor"
+                style={{
+                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 8, padding: '5px 10px', cursor: 'pointer',
+                  color: '#64748b', fontSize: '0.75rem', fontWeight: 600,
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = '#f87171'; e.currentTarget.style.borderColor = 'rgba(248,113,113,0.25)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+              >
+                ✕ Cancel
+              </button>
             </div>
-
             <textarea
               ref={textareaRef}
               className="w-full bg-white/5 border border-white/10 text-white rounded-xl p-4 outline-none focus:border-purple-400 focus:bg-white/10 resize-none transition-all placeholder-gray-500"
@@ -329,10 +352,8 @@ const TypingView = () => {
               placeholder="Paste or type the text you want to practice…"
               value={customText}
               onChange={(e) => setCustomText(e.target.value)}
-              // Prevent Enter from triggering any global keydown handler
               onKeyDown={(e) => e.stopPropagation()}
             />
-
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
               <span style={{ color: '#475569', fontSize: '0.78rem' }}>
                 {customText.trim().split(/\s+/).filter(Boolean).length} words · {customText.trim().length} chars
@@ -346,7 +367,8 @@ const TypingView = () => {
                     ? 'linear-gradient(135deg, #7c3aed, #c084fc)'
                     : 'rgba(255,255,255,0.06)',
                   border: 'none', borderRadius: 12,
-                  padding: '10px 22px', cursor: customText.trim() ? 'pointer' : 'not-allowed',
+                  padding: '10px 22px',
+                  cursor: customText.trim() ? 'pointer' : 'not-allowed',
                   color: customText.trim() ? '#fff' : '#475569',
                   fontWeight: 700, fontSize: '0.9rem',
                   transition: 'all 0.2s ease',
@@ -363,7 +385,7 @@ const TypingView = () => {
         </div>
       )}
 
-      {/* ── Main Typing Area ─────────────────────────────────────────────── */}
+      {/* ── Main Typing Area ──────────────────────────────────────── */}
       <main className="flex-grow flex flex-col justify-center items-center">
         {showTyper && (
           <Typer
@@ -378,7 +400,7 @@ const TypingView = () => {
         )}
       </main>
 
-      {/* ── Footer ───────────────────────────────────────────────────────── */}
+      {/* ── Footer ───────────────────────────────────────────────── */}
       <footer className="text-center text-gray-500 text-xs mt-8 pb-2">
         {!isAuthenticated
           ? <span>Playing as guest — <Link to="/" className="text-yellow-500 hover:underline cursor-pointer">Sign in</Link> to save your stats</span>

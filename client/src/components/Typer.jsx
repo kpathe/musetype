@@ -5,10 +5,10 @@ import Results from './Results';
 import useTypingStore from '../store/useTypingStore';
 import useAuthStore from '../store/useAuthStore';
 
-// ─── Mini Sparkline Chart (last N WPM readings) ──────────────────────────────
-const Sparkline = ({ data, maxVal }) => {
+// ─── Mini Sparkline ───────────────────────────────────────────────────────────
+const Sparkline = ({ data }) => {
   if (!data || data.length === 0) return null;
-  const max = maxVal || Math.max(...data, 1);
+  const max = Math.max(...data, 1);
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: '28px' }}>
       {data.map((v, i) => (
@@ -23,7 +23,7 @@ const Sparkline = ({ data, maxVal }) => {
 };
 
 // ─── Live WPM HUD ─────────────────────────────────────────────────────────────
-const LiveWpmHud = ({ wpm, bpm, wpmHistory }) => (
+const LiveHud = ({ wpm, bpm, wpmHistory }) => (
   <div className="live-wpm-hud">
     <div style={{ textAlign: 'right' }}>
       <div className="live-wpm-number">{wpm}</div>
@@ -44,145 +44,115 @@ const LiveWpmHud = ({ wpm, bpm, wpmHistory }) => (
   </div>
 );
 
-// ─── Main Typer Component ─────────────────────────────────────────────────────
+// ─── Main Typer ───────────────────────────────────────────────────────────────
 const Typer = ({ text = '', lessonId, lessonTitle }) => {
   const [inputState, setInputState] = useState({ typed: '', errors: [] });
-  const [caretPos, setCaretPos] = useState({ left: 0, top: 0 });
-  const [startTime, setStartTime] = useState(null);
+  const [caretPos, setCaretPos]     = useState({ left: 0, top: 0 });
+  const [startTime, setStartTime]   = useState(null);
   const [isFinished, setIsFinished] = useState(false);
 
-  // Live WPM tracking
-  const [liveWpm, setLiveWpm] = useState(0);
-  const [wpmHistory, setWpmHistory] = useState([]); // last 15 readings
-  const [liveBpm, setLiveBpm] = useState(0);
+  // Live stats
+  const [liveWpm, setLiveWpm]       = useState(0);
+  const [wpmHistory, setWpmHistory] = useState([]);
+  const [liveBpm, setLiveBpm]       = useState(0);
 
-  // For results chart
-  const [statsLog, setStatsLog] = useState([]);
-  const [finalStats, setFinalStats] = useState(null);
+  // Chart data & per-key heatmap
+  const [statsLog, setStatsLog]     = useState([]);
+  const [keyStats, setKeyStats]     = useState({});
+  const lastKeyTimeRef              = useRef(null);
+  const keystrokesRef               = useRef([]);
 
-  // Per-key timing: { [char]: { count, totalMs, errors } }
-  const [keyStats, setKeyStats] = useState({});
-  const lastKeyTimeRef = useRef(null);
-  const lastTypedCharRef = useRef(null);
-
-  // BPM tracking — keystrokes in last 5s window
-  const keystrokesRef = useRef([]);
-
-  const charRefs = useRef([]);
+  const charRefs     = useRef([]);
   const containerRef = useRef(null);
   const { submitSession } = useTypingStore();
   const { isAuthenticated } = useAuthStore();
 
-  // ── Live stats interval ──────────────────────────────────────────────────
+  // ── Live stats interval ──────────────────────────────────────────
   useEffect(() => {
     if (!startTime || isFinished) return;
     const interval = setInterval(() => {
       const now = Date.now();
-      const timeElapsed = (now - startTime) / 60000;
-      if (timeElapsed === 0) return;
+      const elapsed = (now - startTime) / 60000;
+      if (elapsed === 0) return;
 
       setInputState(curr => {
-        const grossWPM = (curr.typed.length / 5) / timeElapsed;
-        const netWPM = Math.max(0, Math.round(grossWPM - curr.errors.length / timeElapsed));
-
+        const grossWPM = (curr.typed.length / 5) / elapsed;
+        const netWPM   = Math.max(0, Math.round(grossWPM - curr.errors.length / elapsed));
         setLiveWpm(netWPM);
         setWpmHistory(prev => [...prev.slice(-14), netWPM]);
         setStatsLog(prev => [...prev, {
-          second: Math.round(timeElapsed * 60),
+          second: Math.round(elapsed * 60),
           wpm: netWPM,
           raw: Math.round(grossWPM),
           errors: curr.errors.length > (prev[prev.length - 1]?.totalErrors || 0) ? 1 : 0,
-          totalErrors: curr.errors.length
+          totalErrors: curr.errors.length,
         }]);
         return curr;
       });
 
-      // Compute BPM from keystrokes in last 5 seconds
+      // BPM from keystroke density (last 5 seconds)
       const fiveSec = now - 5000;
-      const recentStrokes = keystrokesRef.current.filter(t => t > fiveSec);
-      keystrokesRef.current = recentStrokes;
-      const bpmVal = Math.round((recentStrokes.length / 5) * 60);
-      setLiveBpm(bpmVal);
+      keystrokesRef.current = keystrokesRef.current.filter(t => t > fiveSec);
+      setLiveBpm(Math.round((keystrokesRef.current.length / 5) * 60));
     }, 1000);
-
     return () => clearInterval(interval);
   }, [startTime, isFinished]);
 
-  // ── Caret positioning ────────────────────────────────────────────────────
+  // ── Caret positioning ────────────────────────────────────────────
   useEffect(() => {
-    const activeIndex = inputState.typed.length;
-    if (charRefs.current[activeIndex] && containerRef.current) {
-      const charRect = charRefs.current[activeIndex].getBoundingClientRect();
-      const containerRect = containerRef.current.getBoundingClientRect();
-      setCaretPos({
-        left: charRect.left - containerRect.left,
-        top: charRect.top - containerRect.top,
-      });
+    const idx = inputState.typed.length;
+    if (charRefs.current[idx] && containerRef.current) {
+      const cr = charRefs.current[idx].getBoundingClientRect();
+      const pr = containerRef.current.getBoundingClientRect();
+      setCaretPos({ left: cr.left - pr.left, top: cr.top - pr.top });
     }
-  }, [inputState.typed, text, isFinished]);
+  }, [inputState.typed, text]);
 
-  // ── Key handler ──────────────────────────────────────────────────────────
+  // ── Key handler ──────────────────────────────────────────────────
   const handleKeyDown = useCallback((e) => {
     if (e.key === ' ') e.preventDefault();
     if (e.key.length !== 1 && e.key !== 'Backspace') return;
 
     const now = Date.now();
-
     if (!startTime && e.key !== 'Backspace') {
       setStartTime(now);
       lastKeyTimeRef.current = now;
     }
-
-    // Track keystroke for BPM
-    if (e.key !== 'Backspace') {
-      keystrokesRef.current.push(now);
-    }
+    if (e.key !== 'Backspace') keystrokesRef.current.push(now);
 
     setInputState(prev => {
-      const expectedChar = text[prev.typed.length];
-
       if (e.key === 'Backspace') {
-        // Update per-key stats: remove the last typed char timing
         lastKeyTimeRef.current = now;
         return { ...prev, typed: prev.typed.slice(0, -1) };
       }
 
-      // Record per-key timing
-      const timeSinceLast = lastKeyTimeRef.current ? now - lastKeyTimeRef.current : null;
+      const expectedChar   = text[prev.typed.length];
+      const timeSinceLast  = lastKeyTimeRef.current ? now - lastKeyTimeRef.current : null;
       lastKeyTimeRef.current = now;
 
       if (e.key === expectedChar) {
+        // ── Correct keypress ─────────────────────────────────────
         AudioEngine.playNoteForKey(e.key);
 
-        // Update per-key stats on correct press
         if (timeSinceLast !== null) {
           setKeyStats(ks => {
-            const key = e.key.toLowerCase();
-            const existing = ks[key] || { count: 0, totalMs: 0, errors: 0 };
-            return {
-              ...ks,
-              [key]: {
-                ...existing,
-                count: existing.count + 1,
-                totalMs: existing.totalMs + timeSinceLast,
-              }
-            };
+            const k  = e.key.toLowerCase();
+            const ex = ks[k] || { count: 0, totalMs: 0, errors: 0 };
+            return { ...ks, [k]: { ...ex, count: ex.count + 1, totalMs: ex.totalMs + timeSinceLast } };
           });
         }
 
         const newTyped = prev.typed + e.key;
-        if (newTyped.length === text.length) {
-          handleComplete(prev.errors.length, newTyped.length);
-        }
+        if (newTyped.length === text.length) handleComplete(prev.errors.length, newTyped.length);
         return { ...prev, typed: newTyped };
       } else {
+        // ── Wrong keypress ───────────────────────────────────────
         if (prev.typed.length < text.length) {
           AudioEngine.playError();
-          // Record error for this key
           setKeyStats(ks => {
-            const key = e.key.toLowerCase();
-            const existing = ks[key] || { count: 0, totalMs: 0, errors: 0 };
-            return { ...ks, [key]: { ...existing, errors: existing.errors + 1 } };
+            const k  = e.key.toLowerCase();
+            const ex = ks[k] || { count: 0, totalMs: 0, errors: 0 };
+            return { ...ks, [k]: { ...ex, errors: ex.errors + 1 } };
           });
           const errors = prev.errors.includes(prev.typed.length)
             ? prev.errors
@@ -200,33 +170,40 @@ const Typer = ({ text = '', lessonId, lessonTitle }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown, isFinished]);
 
-  // ── Completion ───────────────────────────────────────────────────────────
+  // ── Complete ─────────────────────────────────────────────────────
   const handleComplete = async (errorCount, totalLength) => {
     setIsFinished(true);
-    const endTime = Date.now();
-    const timeInSeconds = Math.round((endTime - startTime) / 1000);
-    const timeInMinutes = timeInSeconds / 60;
-    const grossWPM = Math.round((totalLength / 5) / timeInMinutes);
-    const netWPM = Math.max(0, Math.round(grossWPM - errorCount / timeInMinutes));
-    const accuracy = Math.max(0, Math.round(((totalLength - errorCount) / totalLength) * 100));
+    const endTime    = Date.now();
+    const timeInSec  = Math.round((endTime - startTime) / 1000);
+    const timeInMin  = timeInSec / 60;
+    const grossWPM   = Math.round((totalLength / 5) / timeInMin);
+    const netWPM     = Math.max(0, Math.round(grossWPM - errorCount / timeInMin));
+    const accuracy   = Math.max(0, Math.round(((totalLength - errorCount) / totalLength) * 100));
     const consistency = Math.max(0, 100 - Math.round(errorCount * 2));
 
-    setFinalStats({
-      wpm: netWPM,
-      accuracy,
-      rawWpm: grossWPM,
+    const stats = {
+      wpm: netWPM, accuracy, rawWpm: grossWPM,
       correctChars: totalLength - errorCount,
-      incorrectChars: errorCount,
-      consistency,
-      time: timeInSeconds,
-      isAuthenticated,
-      lessonTitle,
-    });
+      incorrectChars: errorCount, consistency,
+      time: timeInSec, isAuthenticated, lessonTitle,
+    };
+
+    setKeyStats(ks => { /* freeze */ return ks; });
+
+    setTimeout(() => {
+      setIsFinished(true);
+      window._finalTyperStats = { stats, statsLog, keyStats };
+    }, 0);
 
     if (lessonId && isAuthenticated) {
       await submitSession({ lessonId, wpm: netWPM, accuracy });
     }
+
+    // Trigger Results via a separate finalStats state
+    setFinalStats({ ...stats, _log: statsLog });
   };
+
+  const [finalStats, setFinalStats] = useState(null);
 
   const handleRestart = () => {
     setInputState({ typed: '', errors: [] });
@@ -242,12 +219,12 @@ const Typer = ({ text = '', lessonId, lessonTitle }) => {
     lastKeyTimeRef.current = null;
   };
 
-  // ── Finished → show Results ──────────────────────────────────────────────
+  // ── Finished ─────────────────────────────────────────────────────
   if (isFinished && finalStats) {
     return (
       <Results
         stats={finalStats}
-        chartData={statsLog}
+        chartData={finalStats._log || statsLog}
         keyStats={keyStats}
         onRestart={handleRestart}
         onNext={() => window.location.reload()}
@@ -259,40 +236,40 @@ const Typer = ({ text = '', lessonId, lessonTitle }) => {
 
   return (
     <div className="w-full flex flex-col items-center gap-6">
-      {/* Progress bar */}
+
+      {/* ── Progress bar ────────────────────────────────────────── */}
       <div style={{
         width: '100%', maxWidth: '860px', height: '3px',
-        background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden'
+        background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden',
       }}>
         <div style={{
           height: '100%', width: `${progress}%`,
           background: 'linear-gradient(90deg, #7c3aed, #c084fc)',
-          borderRadius: '2px',
-          transition: 'width 0.2s ease',
-          boxShadow: '0 0 8px rgba(192,132,252,0.5)',
+          borderRadius: '2px', transition: 'width 0.2s ease',
+          boxShadow: progress > 0 ? '0 0 8px rgba(192,132,252,0.5)' : 'none',
         }} />
       </div>
 
-      {/* Typing text display */}
+      {/* ── Typing text ─────────────────────────────────────────── */}
       <div
         ref={containerRef}
         className="relative text-3xl font-mono text-gray-500 max-w-5xl mx-auto leading-relaxed focus:outline-none select-none"
       >
         {!isFinished && <Caret left={caretPos.left} top={caretPos.top} />}
         {text.split('').map((char, index) => {
-          let colorClass = 'text-gray-500';
-          if (index < inputState.typed.length) colorClass = 'text-gray-100';
-          if (inputState.errors.includes(index)) colorClass = 'text-red-400';
+          let color = '#4b5563';
+          if (index < inputState.typed.length) color = '#e2e8f0';
+          if (inputState.errors.includes(index)) color = '#f87171';
           return (
             <span
               key={index}
               ref={el => charRefs.current[index] = el}
-              className={`transition-colors duration-150 ${colorClass}`}
-              style={inputState.errors.includes(index) ? {
-                textDecoration: 'underline',
-                textDecorationColor: 'rgba(248,113,113,0.6)',
-                textDecorationStyle: 'wavy',
-              } : {}}
+              className="transition-colors duration-150"
+              style={{
+                color,
+                textDecoration: inputState.errors.includes(index)
+                  ? 'underline wavy rgba(248,113,113,0.6)' : 'none',
+              }}
             >
               {char}
             </span>
@@ -300,9 +277,9 @@ const Typer = ({ text = '', lessonId, lessonTitle }) => {
         })}
       </div>
 
-      {/* Live WPM HUD — only shown once typing starts */}
+      {/* ── Live HUD ────────────────────────────────────────────── */}
       {startTime && !isFinished && (
-        <LiveWpmHud wpm={liveWpm} bpm={liveBpm} wpmHistory={wpmHistory} />
+        <LiveHud wpm={liveWpm} bpm={liveBpm} wpmHistory={wpmHistory} />
       )}
     </div>
   );

@@ -182,22 +182,30 @@ const TypingView = () => {
   const [volume, setVolume]               = useState(0.75);
   const [showSettings, setShowSettings]   = useState(false);
 
-  const settingsRef = useRef(null);
-  const textareaRef = useRef(null);
+  const settingsRef    = useRef(null);
+  const textareaRef    = useRef(null);
+  // Ref that mirrors isCustomMode but is updated SYNCHRONOUSLY before any
+  // navigate() or setState() call — prevents the useEffect race condition
+  // where lessonId is still the old value when isCustomMode state hasn't landed yet.
+  const customModeRef  = useRef(false);
 
   useEffect(() => { fetchLessons(); }, [fetchLessons]);
 
   useEffect(() => {
     if (lessons.length > 0) {
+      // If user explicitly chose custom mode, never override it from URL params
+      if (customModeRef.current) return;
+
       if (lessonId) {
         setActiveLesson(lessonId);
         setIsCustomMode(false);
         setIsCustomReady(false);
-      } else if (!isCustomMode) {
+      } else {
         setActiveLesson(lessons[0]._id);
       }
     }
-  }, [lessons, lessonId, setActiveLesson, isCustomMode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lessons, lessonId]);
 
   // Close settings panel on outside click
   useEffect(() => {
@@ -209,13 +217,15 @@ const TypingView = () => {
   }, []);
 
   const handleLessonSelect = (id) => {
+    customModeRef.current = false;   // leave custom mode
     setIsCustomMode(false);
     setIsCustomReady(false);
     navigate(`/type/${id}`);
   };
 
   const handleCustomMode = () => {
-    navigate('/type');        // ← clears :lessonId from URL so the effect doesn't revert us
+    customModeRef.current = true;    // set ref FIRST — before navigate/setState
+    navigate('/type');
     setIsCustomMode(true);
     setIsCustomReady(false);
     setActiveLesson(null);
@@ -229,10 +239,10 @@ const TypingView = () => {
   };
 
   const handleCancelCustom = () => {
+    customModeRef.current = false;   // leave custom mode
     setIsCustomMode(false);
     setIsCustomReady(false);
     setCustomText('');
-    // Go back to first available lesson
     if (lessons.length > 0) navigate(`/type/${lessons[0]._id}`);
   };
 

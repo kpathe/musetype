@@ -275,7 +275,7 @@ const TypingView = () => {
               <LayoutDashboard size={16} /> Dashboard
             </Link>
           ) : (
-            <Link to="/login" className="glass-button flex items-center gap-2">
+            <Link to="/" className="glass-button flex items-center gap-2">
               <User size={16} /> Sign In
             </Link>
           )}
@@ -318,7 +318,7 @@ const TypingView = () => {
       {/* ── Footer ───────────────────────────────────────────────────── */}
       <footer className="text-center text-gray-500 text-xs mt-8 pb-2">
         {!isAuthenticated
-          ? <span>Playing as guest — <Link to="/login" className="text-yellow-500 hover:underline cursor-pointer">Sign in</Link> to save your stats</span>
+          ? <span>Playing as guest — <Link to="/" className="text-yellow-500 hover:underline cursor-pointer">Sign in</Link> to save your stats</span>
           : <span>Keyboard mapped to 4th octave · Type to play · {instrument} mode</span>
         }
       </footer>

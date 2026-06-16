@@ -112,7 +112,7 @@ const Results = ({ stats, chartData, keyStats = {}, onRestart, onNext }) => {
         <div className="text-center mt-4 glass-panel p-5 max-w-md mx-auto">
           <p className="text-gray-300 font-medium mb-3">Save your progress & track improvement over time</p>
           <Link
-            to="/login"
+            to="/"
             className="inline-block bg-gradient-to-r from-yellow-500 to-amber-500 text-gray-900 font-bold px-6 py-3 rounded-xl hover:shadow-lg hover:shadow-yellow-500/25 transition-all"
             style={{ cursor: 'pointer' }}
           >

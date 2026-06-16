@@ -242,11 +242,11 @@ const AuthForm = ({ initialMode = 'login' }) => {
       if (mode === 'login') {
         await login(email, password);
         setSuccessMsg('Welcome back! Redirecting…');
-        setTimeout(() => navigate('/'), 800);
+        setTimeout(() => navigate('/type'), 800);
       } else {
         await register(username, email, password);
         setSuccessMsg('Account created! Redirecting to your workspace…');
-        setTimeout(() => navigate('/'), 800);
+        setTimeout(() => navigate('/type'), 800);
       }
     } catch (err) {
       const serverMsg = err.response?.data?.error || err.response?.data?.message;
@@ -436,7 +436,7 @@ const DemoCTA = ({ onRetry }) => (
     </p>
     <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
       <Link
-        to="/login"
+        to="/#auth"
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
           background: 'linear-gradient(135deg, #eab308, #f59e0b)',
@@ -500,11 +500,11 @@ const Landing = () => {
             </span>
           </Link>
           <Link
-            to="/"
+            to="/type"
             className="glass-button"
             style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none', color: '#e2e8f0' }}
           >
-            Try Demo <ArrowRight size={14} />
+            Try App <ArrowRight size={14} />
           </Link>
         </nav>
 
@@ -535,7 +535,7 @@ const Landing = () => {
 
           <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link
-              to="/"
+              to="/type"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
                 background: 'linear-gradient(135deg, #7c3aed, #c084fc)',

@@ -6,34 +6,34 @@ import Typer from '../components/Typer';
 import AudioEngine, { INSTRUMENTS } from '../utils/AudioEngine';
 import {
   LayoutDashboard, User, ChevronDown, Check, Edit3,
-  Music, Volume2, Zap, Settings
+  Music, Volume2, Settings, Play
 } from 'lucide-react';
 
 // ─── Difficulty Badge ─────────────────────────────────────────────────────────
 const DifficultyBadge = ({ level }) => {
   const map = {
-    beginner: { color: '#34d399', bg: 'rgba(52,211,153,0.1)', label: 'Beginner' },
-    intermediate: { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', label: 'Intermediate' },
-    advanced: { color: '#f87171', bg: 'rgba(248,113,113,0.1)', label: 'Advanced' },
+    beginner:     { color: '#34d399', bg: 'rgba(52,211,153,0.1)',   label: 'Beginner' },
+    intermediate: { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  label: 'Intermediate' },
+    advanced:     { color: '#f87171', bg: 'rgba(248,113,113,0.1)', label: 'Advanced' },
   };
-  const style = map[level?.toLowerCase()] || { color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', label: level || 'Custom' };
+  const s = map[level?.toLowerCase()] || { color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', label: level || 'Custom' };
   return (
     <span style={{
-      fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em',
-      padding: '2px 8px', borderRadius: '50px',
-      color: style.color, background: style.bg,
-      textTransform: 'uppercase',
+      fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.08em',
+      padding: '2px 8px', borderRadius: 50,
+      color: s.color, background: s.bg, textTransform: 'uppercase',
     }}>
-      {style.label}
+      {s.label}
     </span>
   );
 };
 
-// ─── Custom Lesson Picker Dropdown ───────────────────────────────────────────
+// ─── Lesson Picker Dropdown ───────────────────────────────────────────────────
 const LessonPicker = ({ lessons, activeLesson, isCustomMode, onLessonSelect, onCustomMode }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
+  // Close on outside click
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown', handler);
@@ -43,91 +43,102 @@ const LessonPicker = ({ lessons, activeLesson, isCustomMode, onLessonSelect, onC
   const currentTitle = isCustomMode ? 'Custom Text' : (activeLesson?.title || 'Select Lesson');
 
   return (
-    <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
-      <button
-        onClick={() => setOpen(v => !v)}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          background: open ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.06)',
-          border: `1px solid ${open ? 'rgba(168,85,247,0.4)' : 'rgba(255,255,255,0.1)'}`,
-          borderRadius: 14, padding: '8px 16px', cursor: 'pointer',
-          color: '#e2e8f0', fontSize: '0.9rem', fontWeight: 600,
-          transition: 'all 0.2s ease', whiteSpace: 'nowrap',
-        }}
-      >
-        <Music size={15} style={{ color: '#c084fc' }} />
-        <span style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentTitle}</span>
-        <ChevronDown
-          size={15}
-          style={{ color: '#94a3b8', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}
-        />
-      </button>
-
+    <>
+      {/* Full-screen backdrop — dims the text area and blocks interaction */}
       {open && (
-        <div className="lesson-picker-dropdown">
-          {/* Lesson entries */}
-          {lessons.map(lesson => {
-            const isActive = !isCustomMode && activeLesson?._id === lesson._id;
-            const wordCount = lesson.text.split(' ').length;
-            return (
-              <div
-                key={lesson._id}
-                className={`lesson-picker-item ${isActive ? 'active' : ''}`}
-                onClick={() => { onLessonSelect(lesson._id); setOpen(false); }}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontWeight: 700, color: '#e2e8f0', fontSize: '0.875rem' }}>{lesson.title}</span>
-                    {isActive && <Check size={13} style={{ color: '#c084fc', flexShrink: 0 }} />}
+        <div
+          onClick={() => setOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 40,
+            background: 'rgba(5, 3, 20, 0.72)',
+            backdropFilter: 'blur(3px)',
+          }}
+        />
+      )}
+
+      <div ref={ref} style={{ position: 'relative', display: 'inline-block', zIndex: 50 }}>
+        <button
+          onClick={() => setOpen(v => !v)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            background: open ? 'rgba(168,85,247,0.18)' : 'rgba(255,255,255,0.06)',
+            border: `1px solid ${open ? 'rgba(168,85,247,0.45)' : 'rgba(255,255,255,0.1)'}`,
+            borderRadius: 14, padding: '8px 16px', cursor: 'pointer',
+            color: '#e2e8f0', fontSize: '0.9rem', fontWeight: 600,
+            transition: 'all 0.2s ease', whiteSpace: 'nowrap',
+            position: 'relative', zIndex: 50,
+          }}
+        >
+          <Music size={15} style={{ color: '#c084fc' }} />
+          <span style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentTitle}</span>
+          <ChevronDown
+            size={15}
+            style={{ color: '#94a3b8', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}
+          />
+        </button>
+
+        {open && (
+          <div className="lesson-picker-dropdown" style={{ zIndex: 51 }}>
+            {lessons.map(lesson => {
+              const isActive = !isCustomMode && activeLesson?._id === lesson._id;
+              const wordCount = lesson.text.split(' ').length;
+              return (
+                <div
+                  key={lesson._id}
+                  className={`lesson-picker-item ${isActive ? 'active' : ''}`}
+                  onClick={() => { onLessonSelect(lesson._id); setOpen(false); }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                      <span style={{ fontWeight: 700, color: '#e2e8f0', fontSize: '0.875rem' }}>{lesson.title}</span>
+                      {isActive && <Check size={13} style={{ color: '#c084fc', flexShrink: 0 }} />}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <DifficultyBadge level={lesson.difficulty} />
+                      <span style={{ color: '#64748b', fontSize: '0.7rem' }}>{wordCount} words</span>
+                    </div>
+                    <p style={{
+                      color: '#475569', fontSize: '0.7rem', marginTop: 6,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 240,
+                    }}>
+                      {lesson.text.substring(0, 65)}…
+                    </p>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <DifficultyBadge level={lesson.difficulty} />
-                    <span style={{ color: '#64748b', fontSize: '0.7rem' }}>{wordCount} words</span>
-                  </div>
-                  <p style={{
-                    color: '#475569', fontSize: '0.7rem', marginTop: 6,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    maxWidth: 220,
-                  }}>
-                    {lesson.text.substring(0, 60)}…
-                  </p>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
 
-          {/* Divider */}
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '6px 0' }} />
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '6px 0' }} />
 
-          {/* Custom text option */}
-          <div
-            className={`lesson-picker-item ${isCustomMode ? 'active' : ''}`}
-            onClick={() => { onCustomMode(); setOpen(false); }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Edit3 size={14} style={{ color: '#f59e0b' }} />
-              <div>
-                <div style={{ fontWeight: 700, color: '#e2e8f0', fontSize: '0.875rem' }}>Custom Text</div>
-                <div style={{ color: '#64748b', fontSize: '0.7rem' }}>Paste your own content</div>
+            <div
+              className={`lesson-picker-item ${isCustomMode ? 'active' : ''}`}
+              onClick={() => { onCustomMode(); setOpen(false); }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
+                <Edit3 size={14} style={{ color: '#f59e0b', flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, color: '#e2e8f0', fontSize: '0.875rem' }}>Custom Text</div>
+                  <div style={{ color: '#64748b', fontSize: '0.7rem' }}>Paste your own content</div>
+                </div>
+                {isCustomMode && <Check size={13} style={{ color: '#f59e0b' }} />}
               </div>
-              {isCustomMode && <Check size={13} style={{ color: '#f59e0b', marginLeft: 'auto' }} />}
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 };
 
 // ─── Instrument Selector ──────────────────────────────────────────────────────
 const InstrumentSelector = ({ active, onChange }) => {
   const instruments = [
-    { id: INSTRUMENTS.PIANO, label: '🎹 Piano' },
-    { id: INSTRUMENTS.SYNTH, label: '🎛️ Synth' },
+    { id: INSTRUMENTS.PIANO,   label: '🎹 Piano' },
+    { id: INSTRUMENTS.SYNTH,   label: '🎛️ Synth' },
     { id: INSTRUMENTS.MARIMBA, label: '🪘 Marimba' },
   ];
   return (
-    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+    <div style={{ display: 'flex', gap: 6 }}>
       {instruments.map(ins => (
         <button
           key={ins.id}
@@ -146,28 +157,34 @@ const VolumeControl = ({ volume, onChange }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
     <Volume2 size={14} style={{ color: '#64748b' }} />
     <input
-      type="range"
-      min={0} max={1} step={0.05}
+      type="range" min={0} max={1} step={0.05}
       value={volume}
       onChange={e => onChange(parseFloat(e.target.value))}
       className="volume-slider"
     />
+    <span style={{ color: '#64748b', fontSize: '0.75rem', width: 28 }}>
+      {Math.round(volume * 100)}%
+    </span>
   </div>
 );
 
-// ─── Main TypingView ─────────────────────────────────────────────────────────
+// ─── Main TypingView ──────────────────────────────────────────────────────────
 const TypingView = () => {
   const { lessonId } = useParams();
   const navigate = useNavigate();
   const { lessons, fetchLessons, activeLesson, setActiveLesson } = useTypingStore();
   const { isAuthenticated } = useAuthStore();
 
-  const [customText, setCustomText] = useState('');
-  const [isCustomMode, setIsCustomMode] = useState(false);
+  const [customText, setCustomText]       = useState('');
+  const [isCustomMode, setIsCustomMode]   = useState(false);
+  // "ready" means the user has clicked "Start Lesson" — Typer only mounts then
+  const [isCustomReady, setIsCustomReady] = useState(false);
+
   const [instrument, setInstrument] = useState(INSTRUMENTS.PIANO);
-  const [volume, setVolume] = useState(0.75);
+  const [volume, setVolume]         = useState(0.75);
   const [showSettings, setShowSettings] = useState(false);
   const settingsRef = useRef(null);
+  const textareaRef = useRef(null);
 
   useEffect(() => { fetchLessons(); }, [fetchLessons]);
 
@@ -176,13 +193,14 @@ const TypingView = () => {
       if (lessonId) {
         setActiveLesson(lessonId);
         setIsCustomMode(false);
+        setIsCustomReady(false);
       } else if (!isCustomMode) {
         setActiveLesson(lessons[0]._id);
       }
     }
   }, [lessons, lessonId, setActiveLesson, isCustomMode]);
 
-  // Close settings panel on outside click
+  // Close settings on outside click
   useEffect(() => {
     const handler = (e) => {
       if (settingsRef.current && !settingsRef.current.contains(e.target)) setShowSettings(false);
@@ -193,12 +211,22 @@ const TypingView = () => {
 
   const handleLessonSelect = (id) => {
     setIsCustomMode(false);
+    setIsCustomReady(false);
     navigate(`/type/${id}`);
   };
 
   const handleCustomMode = () => {
     setIsCustomMode(true);
+    setIsCustomReady(false);  // reset ready state so editor shows fresh
     setActiveLesson(null);
+    setCustomText('');
+    // Focus the textarea after state update
+    setTimeout(() => textareaRef.current?.focus(), 80);
+  };
+
+  const handleStartCustomLesson = () => {
+    if (!customText.trim()) return;
+    setIsCustomReady(true);
   };
 
   const handleInstrumentChange = (ins) => {
@@ -212,14 +240,19 @@ const TypingView = () => {
   };
 
   const textToType = isCustomMode
-    ? (customText.trim() || 'type your custom text here...')
+    ? customText.trim()
     : (activeLesson?.text || 'loading...');
+
+  // Should we show the Typer?
+  const showTyper = isCustomMode ? isCustomReady : !!activeLesson;
 
   return (
     <div className="min-h-screen flex flex-col p-8 max-w-6xl mx-auto relative z-10">
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="mb-10 flex flex-wrap justify-between items-center glass-panel p-4 px-6 gap-4">
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <header className="mb-10 flex flex-wrap justify-between items-center glass-panel p-4 px-6 gap-4"
+        style={{ position: 'relative', zIndex: 50 }}
+      >
         {/* Left: Logo + Lesson Picker */}
         <div className="flex items-center gap-4 flex-wrap">
           <Link to="/" className="text-2xl font-bold text-white tracking-tighter drop-shadow-md flex-shrink-0">
@@ -235,14 +268,13 @@ const TypingView = () => {
           />
         </div>
 
-        {/* Right: Controls + Nav */}
+        {/* Right: Audio Settings + Nav */}
         <div className="flex items-center gap-4 flex-wrap">
-          {/* Settings Panel */}
           <div ref={settingsRef} style={{ position: 'relative' }}>
             <button
               className="glass-button flex items-center gap-2"
               onClick={() => setShowSettings(v => !v)}
-              style={{ padding: '6px 12px' }}
+              style={{ padding: '6px 14px' }}
             >
               <Settings size={15} />
               <span className="text-xs">Audio</span>
@@ -250,7 +282,7 @@ const TypingView = () => {
             {showSettings && (
               <div style={{
                 position: 'absolute', top: 'calc(100% + 10px)', right: 0,
-                background: 'rgba(12, 10, 36, 0.97)', backdropFilter: 'blur(20px)',
+                background: 'rgba(12,10,36,0.97)', backdropFilter: 'blur(20px)',
                 border: '1px solid rgba(255,255,255,0.1)', borderRadius: 18,
                 padding: 20, minWidth: 300, zIndex: 100,
                 boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
@@ -269,7 +301,6 @@ const TypingView = () => {
             )}
           </div>
 
-          {/* Auth nav */}
           {isAuthenticated ? (
             <Link to="/dashboard" className="glass-button flex items-center gap-2">
               <LayoutDashboard size={16} /> Dashboard
@@ -282,40 +313,72 @@ const TypingView = () => {
         </div>
       </header>
 
-      {/* ── Custom text panel ─────────────────────────────────────────── */}
-      {isCustomMode && (
-        <div className="mb-8 w-full max-w-2xl mx-auto">
-          <div className="glass-panel p-6">
-            <div className="flex items-center gap-2 text-gray-300 mb-4 font-medium">
-              <Edit3 size={18} /> <span>Custom Text Input</span>
+      {/* ── Custom Text Editor ──────────────────────────────────────────── */}
+      {isCustomMode && !isCustomReady && (
+        <div className="mb-8 w-full max-w-2xl mx-auto animate-fade-in">
+          <div className="glass-panel p-7">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <Edit3 size={18} style={{ color: '#f59e0b' }} />
+              <span style={{ color: '#e2e8f0', fontWeight: 700, fontSize: '1rem' }}>Custom Text Input</span>
             </div>
+
             <textarea
+              ref={textareaRef}
               className="w-full bg-white/5 border border-white/10 text-white rounded-xl p-4 outline-none focus:border-purple-400 focus:bg-white/10 resize-none transition-all placeholder-gray-500"
-              rows={4}
-              placeholder="Paste or type the text you want to practice..."
+              rows={5}
+              placeholder="Paste or type the text you want to practice…"
               value={customText}
               onChange={(e) => setCustomText(e.target.value)}
+              // Prevent Enter from triggering any global keydown handler
+              onKeyDown={(e) => e.stopPropagation()}
             />
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
+              <span style={{ color: '#475569', fontSize: '0.78rem' }}>
+                {customText.trim().split(/\s+/).filter(Boolean).length} words · {customText.trim().length} chars
+              </span>
+              <button
+                onClick={handleStartCustomLesson}
+                disabled={!customText.trim()}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  background: customText.trim()
+                    ? 'linear-gradient(135deg, #7c3aed, #c084fc)'
+                    : 'rgba(255,255,255,0.06)',
+                  border: 'none', borderRadius: 12,
+                  padding: '10px 22px', cursor: customText.trim() ? 'pointer' : 'not-allowed',
+                  color: customText.trim() ? '#fff' : '#475569',
+                  fontWeight: 700, fontSize: '0.9rem',
+                  transition: 'all 0.2s ease',
+                  boxShadow: customText.trim() ? '0 4px 16px rgba(124,58,237,0.3)' : 'none',
+                }}
+                onMouseEnter={e => { if (customText.trim()) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
+              >
+                <Play size={15} fill="currentColor" />
+                Start Lesson
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* ── Main Typing Area ─────────────────────────────────────────── */}
+      {/* ── Main Typing Area ─────────────────────────────────────────────── */}
       <main className="flex-grow flex flex-col justify-center items-center">
-        {(activeLesson || isCustomMode) && (
+        {showTyper && (
           <Typer
-            key={isCustomMode ? `custom-${customText.length}` : activeLesson?._id}
+            key={isCustomMode ? `custom-${textToType.slice(0, 20)}` : activeLesson?._id}
             text={textToType}
             lessonId={isCustomMode ? null : activeLesson?._id}
             lessonTitle={isCustomMode ? 'Custom Text' : activeLesson?.title}
           />
         )}
-        {!activeLesson && !isCustomMode && (
+        {!showTyper && !isCustomMode && (
           <div className="text-gray-500 text-lg">Loading lessons…</div>
         )}
       </main>
 
-      {/* ── Footer ───────────────────────────────────────────────────── */}
+      {/* ── Footer ───────────────────────────────────────────────────────── */}
       <footer className="text-center text-gray-500 text-xs mt-8 pb-2">
         {!isAuthenticated
           ? <span>Playing as guest — <Link to="/" className="text-yellow-500 hover:underline cursor-pointer">Sign in</Link> to save your stats</span>

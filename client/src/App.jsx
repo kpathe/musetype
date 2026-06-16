@@ -40,9 +40,8 @@ function App() {
         <Route path="/login"  element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
 
-        {/* Typing app — open to everyone */}
-        <Route path="/type"            element={<TypingView />} />
-        <Route path="/type/:lessonId"  element={<TypingView />} />
+        {/* Typing app — open to everyone (:lessonId is optional) */}
+        <Route path="/type/:lessonId?" element={<TypingView />} />
 
         {/* Dashboard — login required */}
         <Route

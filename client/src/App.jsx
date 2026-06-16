@@ -2,10 +2,12 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import useAuthStore from './store/useAuthStore';
 import Landing from './pages/Landing';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
 import Dashboard from './pages/Dashboard';
 import TypingView from './pages/TypingView';
 
-// Protected Route Component
+// Protected Route — redirects to home if not authenticated
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuthStore();
   if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading...</div>;
@@ -21,20 +23,28 @@ function App() {
   }, [fetchMe]);
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading MuseType...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-500">
+        Loading MuseType…
+      </div>
+    );
   }
 
   return (
     <BrowserRouter>
       <Routes>
-        {/* Landing / home page */}
+        {/* Home / Landing — demo + links to sign up / log in */}
         <Route path="/" element={<Landing />} />
 
-        {/* Typing app — open to everyone */}
-        <Route path="/type" element={<TypingView />} />
-        <Route path="/type/:lessonId" element={<TypingView />} />
+        {/* Auth pages */}
+        <Route path="/login"  element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
 
-        {/* Dashboard — logged-in only */}
+        {/* Typing app — open to everyone */}
+        <Route path="/type"            element={<TypingView />} />
+        <Route path="/type/:lessonId"  element={<TypingView />} />
+
+        {/* Dashboard — login required */}
         <Route
           path="/dashboard"
           element={
@@ -44,7 +54,7 @@ function App() {
           }
         />
 
-        {/* Catch-all: redirect unknown paths to home */}
+        {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
